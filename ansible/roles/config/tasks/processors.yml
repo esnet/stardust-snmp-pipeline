@@ -1,0 +1,14 @@
+- name: Remove old processor instance directory
+  ansible.builtin.file:
+    path: ../pipeline_{{ pipeline.key }}_processor/instances/
+    state: absent
+- name: Create a directory for processor instances
+  ansible.builtin.file:
+    path: ../pipeline_{{ pipeline.key }}_processor/instances/
+    state: directory
+    mode: "0755"
+- name: Generate proccessor pipeline
+  include_tasks: processor.yml
+  loop: "{{ range( pipeline.value.workers )|list }}"
+  loop_control:
+    loop_var: worker_num

@@ -1,0 +1,11 @@
+log.level: "info"
+###
+# Each event is 3KB
+# workers * batch_size * 3KB will estimate max memory
+pipeline.batch.size: "1000"
+monitoring.enabled: "false"
+{% if monitoring_cluster_uuid is defined %}
+monitoring.cluster_uuid: "{{ monitoring_cluster_uuid }}"
+http.host: "0.0.0.0"
+http.port: "9600"
+{% endif %}

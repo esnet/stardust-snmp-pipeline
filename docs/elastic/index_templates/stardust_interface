@@ -1,0 +1,20 @@
+PUT _index_template/stardust_interface
+{
+  "template": {
+    "settings": {
+      "index": {
+        "lifecycle": {
+          "name": "timeseries-snmp",
+          "rollover_alias": "stardust_interface"
+        }
+      }
+    }
+  },
+  "index_patterns": [
+    "stardust_interface-*"
+  ],
+  "composed_of": [
+    "stardust_base_mappings",
+    "stardust_large_lowrefresh_settings"
+  ]
+}

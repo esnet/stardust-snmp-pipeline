@@ -1,0 +1,93 @@
+---
+#################
+# The configuration maps metadata and data from SNMP about router chassis
+#
+# How to add new mappings:
+#  The key maps the measurement name set in the collector. Usually starts wwith 'snmp' followed by a variation of the MIB name.
+#################
+
+##
+# type: chassis_part
+# mibs: TIMETRA-CHASSIS-MIB
+#
+# Rules for mapping info about parts of a Nokia router chassis
+snmp_timetra_chassis:
+  type: chassis_part
+  meta_maps:
+    - name: chassis_part_meta
+      key:
+        # Get the if index
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[meta][oid_index]'
+      fields:
+        - source: '[fields][SNMP_TIMETRA-CHASSIS-MIB::tmnxHwName]'
+          target: name
+  value_maps:
+    # component temperature in celcius, -1 means no reading
+    - id: chassis_part:temp_c
+      source: '[fields][SNMP_TIMETRA-CHASSIS-MIB::tmnxHwTemperature]'
+      target: '[values][temp_c]'
+      type: int
+      no_rate: true
+      no_delta: true
+  value_id:
+    aggregate: false
+    key:
+      - type: field
+        parents:
+          - '[meta][device]'
+        params:
+          source: '[meta][oid_index]'
+
+##
+# type: chassis_part
+# mibs: JUNIPER-MIB
+#
+# Rules for mapping info about parts of a Juniper router chassis
+snmp_juniper:
+  type: chassis_part
+  meta_maps:
+    - name: chassis_part_meta
+      key:
+        # Get the if index
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[meta][oid_index]'
+      fields:
+        - source: '[fields][SNMP_JUNIPER-MIB::jnxOperatingDescr]'
+          target: name
+  value_maps:
+    # component temperature in celcius, 0 means not available/unapplicable
+    - id: chassis_part:temp_c
+      source: '[fields][SNMP_JUNIPER-MIB::jnxOperatingTemp]'
+      target: '[values][temp_c]'
+      type: int
+      no_rate: true
+      no_delta: true
+    # CPU utilization in percentage of this subject. Zero if unavailable or inapplicable.
+    - id: chassis_part:cpu_util
+      source: '[fields][SNMP_JUNIPER-MIB::jnxOperatingCPU]'
+      target: '[values][cpu_util]'
+      type: int
+      no_rate: true
+      no_delta: true
+    # The buffer pool utilization in percentage of this subject. Zero if unavailable or inapplicable.
+    - id: chassis_part:buffer_util
+      source: '[fields][SNMP_JUNIPER-MIB::jnxOperatingBuffer]'
+      target: '[values][buffer_util]'
+      type: int
+      no_rate: true
+      no_delta: true
+  value_id:
+    aggregate: false
+    key:
+      - type: field
+        parents:
+          - '[meta][device]'
+        params:
+          source: '[meta][oid_index]'

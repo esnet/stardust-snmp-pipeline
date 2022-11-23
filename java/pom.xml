@@ -1,0 +1,22 @@
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>net.es.stardust</groupId>
+    <artifactId>snmp-pipeline</artifactId>
+    <version>1.0</version>
+    <packaging>jar</packaging>
+    <name>snmp-pipeline</name>
+    <url>https://es.net</url>
+
+    <dependencies>
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>4.2.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.1.1</version>
+        </dependency>
+    </dependencies>
+</project>

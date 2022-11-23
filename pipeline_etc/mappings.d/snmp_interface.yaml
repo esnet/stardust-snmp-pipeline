@@ -1,0 +1,991 @@
+---
+#################
+# The configuration maps metadata and data from SNMP about interfaces. This is 
+# relatively large file since "interface" data is spread across multiple MIBs 
+# such as those regarding VRTRs and SAPs.
+#
+# How to add new mappings:
+#  The key maps the measurement name set in the collector. Usually starts wwith 'snmp' followed by a variation of the MIB name.
+#################
+
+##
+# type: interface
+# mibs: IF-MIB
+#
+# Rules for mapping IF-MIB information into interface records
+snmp_if:
+  type: interface
+  relation_maps:
+    - name: ifindex_to_ifname
+      key:
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[meta][oid_index]'
+      field: 
+        source: '[fields][SNMP_IF-MIB::ifName]'
+  meta_maps:
+    - name: if_meta
+      key:
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[fields][SNMP_IF-MIB::ifName]'
+      fields:
+        - source: '[fields][SNMP_IF-MIB::ifName]'
+          target: name
+        - source: '[fields][SNMP_IF-MIB::ifAlias]'
+          target: alias
+        - source: '[fields][SNMP_IF-MIB::ifAlias]'
+          target: if_intercloud
+          type: boolean
+          regex: 'intercloud'
+        - source: '[fields][SNMP_IF-MIB::ifHighSpeed]'
+          target: speed
+          type: int
+        - source: '[fields][SNMP_IF-MIB::ifAdminStatus]'
+          target: if_admin_status
+          type: string
+          translate:
+            default: unknown
+            '1': up
+            '2': down
+            '3': testing
+        - source: '[fields][SNMP_IF-MIB::ifOperStatus]'
+          target: if_oper_status
+          type: string
+          translate:
+            default: unknown
+            '1': up
+            '2': down
+            '3': testing
+            '5': dormant
+            '6': "not present"
+            '7': "lower layer down"
+        - source: '[@metadata][ifindex]'
+          target: ifindex
+          type: int
+  value_maps:
+    - id: iface:in_bits
+      source: '[fields][SNMP_IF-MIB::ifHCInOctets]'
+      target: '[values][if_in_bits]'
+      type: int
+      scale: 8
+    - id: iface:out_bits
+      source: '[fields][SNMP_IF-MIB::ifHCOutOctets]'
+      target: '[values][if_out_bits]'
+      type: int
+      scale: 8
+    - id: iface:in_bcast_pkts
+      source: '[fields][SNMP_IF-MIB::ifHCInBroadcastPkts]'
+      target: '[values][in_bcast_pkts]'
+      type: int
+    - id: iface:out_bcast_pkts
+      source: '[fields][SNMP_IF-MIB::ifHCOutBroadcastPkts]'
+      target: '[values][out_bcast_pkts]'
+      type: int
+    - id: iface:in_mcast_pkts
+      source: '[fields][SNMP_IF-MIB::ifHCInMulticastPkts]'
+      target: '[values][in_mcast_pkts]'
+      type: int
+    - id: iface:out_mcast_pkts
+      source: '[fields][SNMP_IF-MIB::ifHCOutMulticastPkts]'
+      target: '[values][out_mcast_pkts]'
+      type: int
+    - id: iface:in_ucast_pkts
+      source: '[fields][SNMP_IF-MIB::ifHCInUcastPkts]'
+      target: '[values][in_ucast_pkts]'
+      type: int
+    - id: iface:out_ucast_pkts
+      source: '[fields][SNMP_IF-MIB::ifHCOutUcastPkts]'
+      target: '[values][out_ucast_pkts]'
+      type: int
+    - id: iface:in_errors
+      source: '[fields][SNMP_IF-MIB::ifInErrors]'
+      target: '[values][in_errors]'
+      type: int
+    - id: iface:out_errors
+      source: '[fields][SNMP_IF-MIB::ifOutErrors]'
+      target: '[values][out_errors]'
+      type: int
+    - id: iface:in_discards
+      source: '[fields][SNMP_IF-MIB::ifInDiscards]'
+      target: '[values][in_discards]'
+      type: int
+    - id: iface:out_discards
+      source: '[fields][SNMP_IF-MIB::ifOutDiscards]'
+      target: '[values][out_discards]'
+      type: int
+  value_id:
+    aggregate: true
+    key:
+      - type: relation
+        parents:
+          - '[meta][device]'
+        params:
+          name: ifindex_to_ifname
+          fields:
+            - '[meta][device]'
+            - '[meta][oid_index]'
+
+##
+# type: interface
+# mibs: IP-MIB
+#
+# Rules for mapping IP addresses to interfaces
+# Note: Junipers don't support prefixlen, so commented out
+snmp_ip:
+  meta_maps:
+    - name: if_meta
+      key:
+        - type: relation
+          parents:
+            - '[meta][device]'
+          params:
+            name: ifindex_to_ifname
+            fields:
+              - '[meta][device]'
+              - '[fields][SNMP_IP-MIB::ipAddressIfIndex]'
+      fields:
+        - source: '[@metadata][if_ipv4]'
+          target: ipv4
+          format: ip_mib_entry_index
+        # - source: '[@metadata][if_ipv4_len]'
+        #   target: ipv4_prefix_len
+        #   type: int
+        - source: '[@metadata][if_ipv6]'
+          target: ipv6
+          format: ip_mib_entry_index
+        # - source: '[@metadata][if_ipv6_len]'
+        #   target: ipv6_prefix_len
+        #   type: int
+
+##
+# type: interface
+# mibs: TIMETRA-VRTR-MIB
+#
+# Rules for mapping IP addresses to interfaces
+snmp_timetra_vrtr_ip:
+  meta_maps:
+    - name: if_meta
+      key:
+        - type: regex_group
+          parents:
+            - '[meta][device]'
+          params:
+            field: '[meta][oid_index]'
+            regex: '^(\d+\.\d+)\.\d+'
+            group: 1
+        - type: relation
+          parents:
+            - '[meta][device]'
+          params:
+            name: vrtrifindex_to_ifname
+            fields:
+              - '[@metadata][mlookup_cache_prev]'
+      fields:
+        #Try to parse as both v4 and v6 - get blank string if does not match
+        - source: '[@metadata][vrtrif_ipv4]'
+          target: ipv4
+        - source: '[@metadata][vrtrif_ipv4_len]'
+          target: ipv4_prefix_len
+          type: int
+        - source: '[@metadata][vrtrif_ipv6]'
+          target: ipv6
+        - source: '[@metadata][vrtrif_ipv6_len]'
+          target: ipv6_prefix_len
+          type: int
+
+##
+# type: interface
+# mibs: TIMETRA-VRTR-MIB
+#
+# Rules for virtual router interface information
+snmp_timetra_vrtr:
+  type: interface
+  relation_maps:
+    - name: vrtrifindex_to_ifname
+      key:
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[meta][oid_index]'
+      field: 
+        source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfName]'
+    - name: sapindex_to_ifname
+      key:
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[@metadata][sap_index]'
+      field: 
+        source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfName]'
+  meta_maps:
+    - name: if_meta
+      key:
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfName]'
+      fields:
+        - source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfName]'
+          target: name
+        - source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfPortID]'
+          target: port_name
+          type: str
+          format: tmnxportid
+        - source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfType]'
+          target: vrtr_iftype
+          type: int
+        - source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfDescription]'
+          target: vrtr_ifdescr
+        - source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfDescription]'
+          target: vrtr_intercloud
+          type: boolean
+          regex: 'intercloud'
+        - source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfGlobalIndex]'
+          target: vrtr_ifglobalindex
+          type: int
+        - source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfEncapValue]'
+          target: vrtr_ifencapvalue
+          type: int
+        - source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfAdminState]'
+          target: vrtr_ifadminstatus
+          type: string
+          translate:
+            default: unknown
+            '1': "no-op"
+            '2': up
+            '3': down
+        - source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfOperState]'
+          target: vrtr_ifoperstatus
+          type: string
+          translate:
+            default: unknown
+            '2': up
+            '3': down
+            '4': transition
+        - source: '[@metadata][vrtr_ifindex]'
+          target: vrtr_ifindex
+          type: str
+    - name: vrtr_meta
+      key:
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[meta][oid_index]'
+      fields:
+        - source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrName]'
+          target: vrtr_name
+  value_maps:
+    - id: vrtrif:out_pkts
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfTxPkts]'
+      target: '[values][out_pkts]'
+      type: int
+    - id: vrtrif:out_bits
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfTxBytes]'
+      target: '[values][vrtrif_out_bits]'
+      type: int
+      scale: 8
+    - id: vrtrif:out_v4_pkts
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfTxV4Pkts]'
+      target: '[values][out_v4_pkts]'
+      type: int
+    - id: vrtrif:out_v4_bits
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfTxV4Bytes]'
+      target: '[values][out_v4_bits]'
+      type: int
+      scale: 8
+    - id: vrtrif:out_v6_pkts
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfTxV6Pkts]'
+      target: '[values][out_v6_pkts]'
+      type: int
+    - id: vrtrif:out_v6_bits
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfTxV6Bytes]'
+      target: '[values][out_v6_bits]'
+      type: int
+      scale: 8
+    - id: vrtrif:out_v4_discard_pkts
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfTxV4DiscardPkts]'
+      target: '[values][out_v4_discard_pkts]'
+      type: int
+    - id: vrtrif:out_v4_discard_bits
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfTxV4DiscardBytes]'
+      target: '[values][out_v4_discard_bits]'
+      type: int
+      scale: 8
+    - id: vrtrif:out_v6_discard_pkts
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfTxV6DiscardPkts]'
+      target: '[values][out_v6_discard_pkts]'
+      type: int
+    - id: vrtrif:out_v6_discard_bits
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfTxV6DiscardBytes]'
+      target: '[values][out_v6_discard_bits]'
+      type: int
+      scale: 8
+    - id: vrtrif:out_mpls_bits
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfTxMplsBytes]'
+      target: '[values][out_mpls_bits]'
+      type: int
+      scale: 8
+    - id: vrtrif:in_pkts
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfRxPkts]'
+      target: '[values][in_pkts]'
+      type: int
+    - id: vrtrif:in_bits
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfRxBytes]'
+      target: '[values][vrtrif_in_bits]'
+      type: int
+      scale: 8
+    - id: vrtrif:in_v4_pkts
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfRxV4Pkts]'
+      target: '[values][in_v4_pkts]'
+      type: int
+    - id: vrtrif:in_v4_bits
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfRxV4Bytes]'
+      target: '[values][in_v4_bits]'
+      type: int
+      scale: 8
+    - id: vrtrif:in_v6_pkts
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfRxV6Pkts]'
+      target: '[values][in_v6_pkts]'
+      type: int
+    - id: vrtrif:in_v6_bits
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfRxV6Bytes]'
+      target: '[values][in_v6_bits]'
+      type: int
+      scale: 8
+    - id: vrtrif:in_mpls_bits
+      source: '[fields][SNMP_TIMETRA-VRTR-MIB::vRtrIfRxMplsBytes]'
+      target: '[values][in_mpls_bits]'
+      type: int
+      scale: 8
+    - id: vrtrif:total_in_bits
+      source: '[@metadata][vrtrif_total_in_bytes]'
+      target: '[values][vrtrif_total_in_bits]'
+      type: int
+      scale: 8
+    - id: vrtrif:total_out_bits
+      source: '[@metadata][vrtrif_total_out_bytes]'
+      target: '[values][vrtrif_total_out_bits]'
+      type: int
+      scale: 8
+  value_id:
+    aggregate: true
+    key:
+      - type: relation
+        parents:
+          - '[meta][device]'
+        params:
+          name: vrtrifindex_to_ifname
+          fields:
+            - '[meta][device]'
+            - '[meta][oid_index]'
+
+##
+# type: interface
+# mibs: TIMETRA-PORT-MIB
+#
+# Rules for port information. These only map to physical ports
+snmp_timetra_port:
+  type: interface
+  meta_maps:
+    - name: if_meta
+      key:
+        # Get the if index
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortName]'
+      fields:
+        - source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortMode]'
+          target: port_mode
+          type: int
+
+##
+# type: interface
+# mibs: TIMETRA-PORT-MIB
+#
+# Rules for mapping per queue port stats to values. 
+# Separate from port metadata since oidindex is different 
+# as it contains queue number as well.
+snmp_timetra_port_queue:
+  type: interface
+  value_maps:
+    - id: port_queue:out_dropped_inprof_pkts
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetEgressDroInProfPkts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][out_dropped_inprof_pkts]'
+      type: int
+    - id: port_queue:out_dropped_outprof_pkts
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetEgressDroOutProfPkts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][out_dropped_outprof_pkts]'
+      type: int
+    - id: port_queue:out_dropped_inprof_bits
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetEgressDroInProfOcts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][out_dropped_inprof_bits]'
+      type: int
+      scale: 8
+    - id: port_queue:out_dropped_outprof_bits
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetEgressDroOutProfOcts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][out_dropped_outprof_bits]'
+      type: int
+      scale: 8
+    - id: port_queue:out_fwd_inprof_pkts
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetEgressFwdInProfPkts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][out_fwd_inprof_pkts]'
+      type: int
+    - id: port_queue:out_fwd_outprof_pkts
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetEgressFwdOutProfPkts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][out_fwd_outprof_pkts]'
+      type: int
+    - id: port_queue:out_fwd_inprof_bits
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetEgressFwdInProfOcts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][out_fwd_inprof_bits]'
+      type: int
+      scale: 8
+    - id: port_queue:out_fwd_outprof_bits
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetEgressFwdOutProfOcts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][out_fwd_outprof_bits]'
+      type: int
+      scale: 8
+    - id: port_queue:in_dropped_inprof_pkts
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetIngressDroInProfPkts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][in_dropped_inprof_pkts]'
+      type: int
+    - id: port_queue:in_dropped_outprof_pkts
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetIngressDroOutProfPkts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][in_dropped_outprof_pkts]'
+      type: int
+    - id: port_queue:in_dropped_inprof_bits
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetIngressDroInProfOcts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][in_dropped_inprof_bits]'
+      type: int
+      scale: 8
+    - id: port_queue:in_dropped_outprof_bits
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetIngressDroOutProfOcts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][in_dropped_outprof_bits]'
+      type: int
+      scale: 8
+    - id: port_queue:in_fwd_inprof_pkts
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetIngressFwdInProfPkts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][in_fwd_inprof_pkts]'
+      type: int
+    - id: port_queue:in_fwd_outprof_pkts
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetIngressFwdOutProfPkts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][in_fwd_outprof_pkts]'
+      type: int
+    - id: port_queue:in_fwd_inprof_bits
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetIngressFwdInProfOcts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][in_fwd_inprof_bits]'
+      type: int
+      scale: 8
+    - id: port_queue:in_fwd_outprof_bits
+      source: '[fields][SNMP_TIMETRA-PORT-MIB::tmnxPortNetIngressFwdOutProfOcts]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][in_fwd_outprof_bits]'
+      type: int
+      scale: 8
+  value_id:
+    aggregate: true
+    key:
+      - type: field
+        parents:
+          - '[meta][device]'
+        params:
+          source: '[@metadata][queue_port]'
+          format: tmnxportid
+
+##
+# type: interface
+# mibs: TIMETRA-SAP-MIB
+#
+# Rules for mapping Nokia SAPS to interface records
+snmp_timetra_sap:
+  type: interface
+  relation_maps:
+    - name: sapindex_to_sapname
+      key:
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[meta][oid_index]'
+      field: 
+        source: '[@metadata][sap_id]'
+        type: str
+        format: tmnxsapid
+  meta_maps_l3:
+    - name: if_meta
+      key:
+        - type: relation
+          parents:
+            - '[meta][device]'
+          params:
+            name: sapindex_to_ifname
+            fields:
+              - '[meta][device]'
+              - '[meta][oid_index]'
+      fields:
+        - source: '[@metadata][sap_id]'
+          target: sap_name
+          type: str
+          format: tmnxsapid
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngressQosPolicyId]'
+          target: sap_in_policy
+          type: int
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapEgressQosPolicyId]'
+          target: sap_egr_policy
+          type: int
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapDescription]'
+          target: sap_descr
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapDescription]'
+          target: sap_intercloud
+          type: boolean
+          regex: 'intercloud'
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapDescription]'
+          target: oscars_id
+          regex: '^OSCARS-(.+?):'
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapAdminStatus]'
+          target: sap_admin_status
+          type: string
+          translate:
+            default: unknown
+            '1': up
+            '2': down
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapOperStatus]'
+          target: sap_oper_status
+          type: string
+          translate:
+            default: unknown
+            '1': up
+            '2': down
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapType]'
+          target: service_type
+          type: str
+          #Names from TIMETRA-SAP-MIB except for 3(tls) and 4(vprn)
+          translate:
+            default: unknown
+            '1': epipe
+            '2': p3pipe
+            '3': l2vpn
+            '4': l3vpn
+            '5': ies
+            '6': mirror
+            '7': apipe
+            '8': fpipe
+            '9': ipipe
+            '10': cpipe
+            '11': intTls
+            '15': rvpls
+  meta_maps_default:
+    - name: if_meta
+      key:
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[@metadata][sap_id]'
+            type: str
+            format: tmnxsapid
+      fields:
+        - source: '[@metadata][sap_id]'
+          target: name
+          type: str
+          format: tmnxsapid
+        - source: '[@metadata][sap_id]'
+          target: sap_name
+          type: str
+          format: tmnxsapid
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapPortId]'
+          target: port_name
+          type: str
+          format: tmnxportid
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngressQosPolicyId]'
+          target: sap_in_policy
+          type: int
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapEgressQosPolicyId]'
+          target: sap_egr_policy
+          type: int
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapDescription]'
+          target: sap_descr
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapDescription]'
+          target: sap_intercloud
+          type: boolean
+          regex: 'intercloud'
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapDescription]'
+          target: oscars_id
+          regex: '^OSCARS-(.+?):'
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapType]'
+          target: service_type
+          type: str
+          #Names from TIMETRA-SAP-MIB except for 3(tls) and 4(vprn)
+          translate:
+            default: unknown
+            '1': epipe
+            '2': p3pipe
+            '3': l2vpn
+            '4': l3vpn
+            '5': ies
+            '6': mirror
+            '7': apipe
+            '8': fpipe
+            '9': ipipe
+            '10': cpipe
+            '11': intTls
+            '15': rvpls
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapAdminStatus]'
+          target: sap_admin_status
+          type: string
+          translate:
+            default: unknown
+            '1': up
+            '2': down
+        - source: '[fields][SNMP_TIMETRA-SAP-MIB::sapOperStatus]'
+          target: sap_oper_status
+          type: string
+          translate:
+            default: unknown
+            '1': up
+            '2': down
+  value_maps:
+    - id: sap:in_bits
+      source: '[@metadata][sap_in_bytes]'
+      target: '[values][sap_in_bits]'
+      type: int
+      scale: 8
+    - id: sap:out_bits
+      source: '[@metadata][sap_out_bytes]'
+      target: '[values][sap_out_bits]'
+      type: int
+      scale: 8
+    - id: sap:out_fwd_outprof_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsEgressQchipForwardedOutProfPackets]'
+      target: '[values][out_fwd_outprof_pkts]'
+      type: int
+    - id: sap:out_dropped_outprof_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsEgressQchipDroppedOutProfOctets]'
+      target: '[values][out_dropped_outprof_bits]'
+      type: int
+      scale: 8
+    - id: sap:in_dropped_hi_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsIngressQchipDroppedHiPrioOctets]'
+      target: '[values][in_dropped_hi_bits]'
+      type: int
+      scale: 8
+    - id: sap:out_dropped_inprof_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsEgressQchipDroppedInProfPackets]'
+      target: '[values][out_dropped_inprof_pkts]'
+      type: int
+    - id: sap:out_fwd_outprof_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsEgressQchipForwardedOutProfOctets]'
+      target: '[values][out_fwd_outprof_bits]'
+      type: int
+      scale: 8
+    - id: sap:in_dropped_lo_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsIngressQchipDroppedLoPrioOctets]'
+      target: '[values][in_dropped_lo_bits]'
+      type: int
+      scale: 8
+    - id: sap:in_dropped_hi_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsIngressQchipDroppedHiPrioPackets]'
+      target: '[values][in_dropped_hi_pkts]'
+      type: int
+    - id: sap:in_fwd_outprof_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsIngressQchipForwardedOutProfPackets]'
+      target: '[values][in_fwd_outprof_pkts]'
+      type: int
+    - id: sap:out_dropped_inprof_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsEgressQchipDroppedInProfOctets]'
+      target: '[values][out_dropped_inprof_bits]'
+      type: int
+      scale: 8
+    - id: sap:out_dropped_outprof_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsEgressQchipDroppedOutProfPackets]'
+      target: '[values][out_dropped_outprof_pkts]'
+      type: int
+    - id: sap:out_fwd_inprof_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsEgressQchipForwardedInProfOctets]'
+      target: '[values][out_fwd_inprof_bits]'
+      type: int
+      scale: 8
+    - id: sap:out_fwd_inprof_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsEgressQchipForwardedInProfPackets]'
+      target: '[values][out_fwd_inprof_pkts]'
+      type: int
+    - id: sap:in_fwd_outprof_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsIngressQchipForwardedOutProfOctets]'
+      target: '[values][in_fwd_outprof_bits]'
+      type: int
+      scale: 8
+    - id: sap:in_fwd_inprof_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsIngressQchipForwardedInProfPackets]'
+      target: '[values][in_fwd_inprof_pkts]'
+      type: int
+    - id: sap:in_fwd_inprof_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsIngressQchipForwardedInProfOctets]'
+      target: '[values][in_fwd_inprof_bits]'
+      type: int
+      scale: 8
+    - id: sap:in_dropped_lo_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapBaseStatsIngressQchipDroppedLoPrioPackets]'
+      target: '[values][in_dropped_lo_pkts]'
+      type: int
+    - id: sap_queue:sap_out_fwd_inprof_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapEgrQosQueueStatsForwardedInProfPackets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_out_fwd_inprof_pkts]'
+      type: int
+    - id: sap_queue:sap_out_fwd_outprof_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapEgrQosQueueStatsForwardedOutProfPackets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_out_fwd_outprof_pkts]'
+      type: int
+    - id: sap_queue:sap_out_dropped_inprof_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapEgrQosQueueStatsDroppedInProfPackets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_out_dropped_inprof_pkts]'
+      type: int
+    - id: sap_queue:sap_out_dropped_outprof_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapEgrQosQueueStatsDroppedOutProfPackets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_out_dropped_outprof_pkts]'
+      type: int
+    - id: sap_queue:sap_out_fwd_inprof_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapEgrQosQueueStatsForwardedInProfOctets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_out_fwd_inprof_bits]'
+      type: int
+      scale: 8
+    - id: sap_queue:sap_out_fwd_outprof_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapEgrQosQueueStatsForwardedOutProfOctets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_out_fwd_outprof_bits]'
+      type: int
+      scale: 8
+    - id: sap_queue:sap_out_dropped_inprof_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapEgrQosQueueStatsDroppedInProfOctets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_out_dropped_inprof_bits]'
+      type: int
+      scale: 8
+    - id: sap_queue:sap_out_dropped_outprof_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapEgrQosQueueStatsDroppedOutProfOctets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_out_dropped_outprof_bits]'
+      type: int
+      scale: 8
+    - id: sap_queue:sap_in_fwd_inprof_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsForwardedInProfPackets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_fwd_inprof_pkts]'
+      type: int
+    - id: sap_queue:sap_in_fwd_outprof_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsForwardedOutProfPackets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_fwd_outprof_pkts]'
+      type: int
+    - id: sap_queue:sap_in_dropped_hiprio_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsDroppedHiPrioPackets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_dropped_hiprio_pkts]'
+      type: int
+    - id: sap_queue:sap_in_dropped_loprio_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsDroppedLoPrioPackets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_dropped_loprio_pkts]'
+      type: int
+    - id: sap_queue:sap_in_fwd_inprof_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsForwardedInProfOctets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_fwd_inprof_bits]'
+      type: int
+      scale: 8
+    - id: sap_queue:sap_in_fwd_outprof_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsForwardedOutProfOctets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_fwd_outprof_bits]'
+      type: int
+      scale: 8
+    - id: sap_queue:sap_in_dropped_hiprio_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsDroppedHiPrioOctets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_dropped_hiprio_bits]'
+      type: int
+      scale: 8
+    - id: sap_queue:sap_in_dropped_loprio_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsDroppedLoPrioOctets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_dropped_loprio_bits]'
+      type: int
+      scale: 8
+    - id: sap_queue:sap_in_offered_hiprio_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsOfferedHiPrioPackets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_offered_hiprio_pkts]'
+      type: int
+    - id: sap_queue:sap_in_offered_loprio_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsOfferedLoPrioPackets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_offered_loprio_pkts]'
+      type: int
+    - id: sap_queue:sap_in_offered_hiprio_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsOfferedHiPrioOctets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_offered_hiprio_bits]'
+      type: int
+      scale: 8
+    - id: sap_queue:sap_in_offered_loprio_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsOfferedLoPrioOctets]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_offered_loprio_bits]'
+      type: int
+      scale: 8
+    - id: sap_queue:sap_in_offered_uncolored_pkts
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsUncoloredPacketsOffered]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_offered_uncolored_pkts]'
+      type: int
+    - id: sap_queue:sap_in_offered_uncolored_bits
+      source: '[fields][SNMP_TIMETRA-SAP-MIB::sapIngQosQueueStatsUncoloredOctetsOffered]'
+      target_pattern: '[values][queue%{[@metadata][queue_num]}][sap_in_offered_uncolored_bits]'
+      type: int
+      scale: 8
+  value_id:
+    aggregate: true
+    key:
+      - type: relation
+        # find_or_continue means if we find a mapping use it,
+        # or if we don't continue to next step anyways (normally it would stop)
+        # In this case if its an l3 service we get a mapping, otherwise it gets mapped to SAP name
+        find_or_continue: true
+        parents:
+          - '[meta][device]'
+        params:
+          name: sapindex_to_ifname
+          fields:
+            - '[meta][device]'
+            - '[meta][oid_index]'
+      - type: relation
+        parents:
+          - '[meta][device]'
+        params:
+          name: sapindex_to_sapname
+          fields:
+            - '[meta][device]'
+            - '[meta][oid_index]'
+
+##
+# type: interface
+# mibs: TIMETRA-LAG-MIB
+#
+# Rules for mapping information about LAGs to interfaces
+snmp_timetra_lag:
+  type: interface
+  relation_maps:
+    - name: lagindex_to_ifindex
+      key:
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[meta][oid_index]'
+      field: 
+        source: '[fields][SNMP_TIMETRA-LAG-MIB::tLagIfIndex]'
+  meta_maps:
+    - name: lag_members
+      type: set
+      field:
+        source: '[fields][SNMP_TIMETRA-LAG-MIB::tLagMemberPortName]'
+      key:
+        - type: relation
+          parents:
+            - '[meta][device]'
+          params:
+            name: lagindex_to_ifindex
+            fields:
+              - '[meta][device]'
+              # use special field from pre process step since oid index 
+              # also as member portId  i.e. lag_index.port_index but we just want lag_index
+              - '[@metadata][lag_index]'
+        - type: relation
+          parents:
+            - '[meta][device]'
+          params:
+            name: ifindex_to_ifname
+            fields:
+              # use result from previous lookup
+              - '[@metadata][mlookup_cache_prev]'
+
+##
+# type: interface
+# mibs: TIMETRA-LLDP-MIB
+#
+# Rules for mapping Nokia LLDP to interface records. This maps it to both the physical port 
+# and the interfae on that poort since if index is in form X.portId.vrtrId.vrtrIfId. 
+# It seems to only have data for interfaces in Base vprn. 
+snmp_timetra_lldp:
+  meta_maps:
+    #this map adds this to the physical port metdata via regex
+    - name: if_meta
+      key:
+        - type: regex_group
+          parents:
+            - '[meta][device]'
+          params:
+            field: '[meta][oid_index]'
+            regex: '^\d+\.(\d+)\.\d+\.\d+'
+            group: 1
+        - type: relation
+          parents:
+            - '[meta][device]'
+          params:
+            name: ifindex_to_ifname
+            fields:
+              # use result from previous lookup
+              - '[@metadata][mlookup_cache_prev]'
+      fields:
+        #if we ever want this in device::port form add a type-specific pre-processor logstash step
+        - source: '[fields][SNMP_TIMETRA-LLDP-MIB::tmnxLldpRemSysName]'
+          target: remote_device
+        - source: '[fields][SNMP_TIMETRA-LLDP-MIB::tmnxLldpRemPortId]'
+          target: remote_port
+    #this map adds this to the interface metdata ON TOP of the phisical port via regex
+    - name: if_meta
+      key:
+        - type: regex_group
+          parents:
+            - '[meta][device]'
+          params:
+            field: '[meta][oid_index]'
+            regex: '^\d+\.\d+\.(\d+\.\d+)'
+            group: 1
+        - type: relation
+          parents:
+            - '[meta][device]'
+          params:
+            name: vrtrifindex_to_ifname
+            fields:
+              # use result from previous lookup
+              - '[@metadata][mlookup_cache_prev]'
+      fields:
+        #if we ever want this in device::port form add a type-specific pre-processor logstash step
+        - source: '[fields][SNMP_TIMETRA-LLDP-MIB::tmnxLldpRemSysName]'
+          target: remote_device
+        - source: '[fields][SNMP_TIMETRA-LLDP-MIB::tmnxLldpRemPortId]'
+          target: remote_port
+
+##
+# type: interface
+# mibs: LLDP-MIB
+#
+# Rules for mapping LLDP (non-Nokia, like Juniper) to interface metadata
+snmp_lldp:
+  meta_maps:
+    # The oid takes form of X.IFINDEX.Y. Parse out ifindex (not sure what x and y are).
+    - name: if_meta
+      key:
+        - type: regex_group
+          parents:
+            - '[meta][device]'
+          params:
+            field: '[meta][oid_index]'
+            regex: '^\d+\.(\d+)\.\d+'
+            group: 1
+        - type: relation
+          parents:
+            - '[meta][device]'
+          params:
+            name: ifindex_to_ifname
+            fields:
+              # use result from previous lookup
+              - '[@metadata][mlookup_cache_prev]'
+      fields:
+        - source: '[fields][SNMP_LLDP-MIB::lldpRemSysName]'
+          target: remote_device
+        - source: '[fields][SNMP_LLDP-MIB::lldpRemPortId]'
+          target: remote_port

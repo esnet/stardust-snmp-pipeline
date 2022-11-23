@@ -1,0 +1,120 @@
+---
+##
+# Lookup metadata for events of type 'interface'
+interface:
+  # Lookup primary hash with interface metadata populated by data from multiple MIBs
+  - type: cache
+    target: '[meta]'
+    params:
+      key:
+        - name: if_meta
+          function:
+            type: field
+            params:
+              source: '[meta][id]'
+  # Look to see if there is a lag members set (lags only)
+  - type: cache
+    target: '[meta]'
+    params:
+      type: set
+      target_name: lag_members
+      expires: 3600
+      key:
+        - name: lag_members
+          function:
+            type: field
+            params:
+              source: '[meta][id]'
+  # lookp port metadata for l2vpn SAPs. We wil merge this in for L2 saps only since they miss org info
+  - type: cache
+    target: '[@metadata][port_meta]'
+    params:
+      #only do for l2vpn SAPs
+      conditional:
+        field: '[meta][service_type]'
+        value: 'l2vpn'
+      key:
+        - name: if_meta
+          function:
+            type: field
+            parents:
+              - '[meta][device]'
+            params:
+              source: '[meta][port_name]'
+  # Grab the virtual router name (l3vpns and ies only)
+  - type: cache
+    target: '[meta]'
+    params:
+      key:
+        - name: vrtr_meta
+          function:
+            type: regex_group
+            parents:
+              - '[meta][device]'
+            params:
+              field: '[meta][vrtr_ifindex]'
+              regex: '^(\d+)\.'
+              group: 1
+
+##
+# Lookup metadata for events of Sentry PDUs and Alpha PDU controllers
+pdu_outlet:
+  ##
+  # First grab the bus metadata
+  - type: cache
+    target: '[meta]'
+    params:
+      key:
+        - name: alpha_bus_meta
+          function:
+            type: field
+            params:
+              source: '[meta][id]'
+  ##
+  # Then grab the subsystem metadata
+  - type: cache
+    target: '[meta]'
+    params:
+      key:
+        - name: alpha_subsys_meta
+          function:
+            type: field
+            parents:
+              - '[meta][device]'
+            params:
+              source: '[meta][subsys_id]'
+  ##
+  # Finally the system metadata
+  - type: cache
+    target: '[meta]'
+    params:
+      key:
+        - name: alpha_sys_meta
+          function:
+            type: field
+            parents:
+              - '[meta][device]'
+            params:
+              source: '[meta][sys_id]'
+  - type: cache
+    target: '[meta]'
+    params:
+      key:
+        - name: pdu_outlet_meta
+          function:
+            type: field
+            params:
+              source: '[meta][id]'
+
+##
+# Lookup metadata for events of router chassis parts
+chassis_part:
+  - type: cache
+    target: '[meta]'
+    params:
+      key:
+        - name: chassis_part_meta
+          function:
+            type: field
+            params:
+              source: '[meta][id]'

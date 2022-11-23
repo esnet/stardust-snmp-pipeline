@@ -1,0 +1,25 @@
+
+#create instance directory
+- name: Create a directory for instance
+  ansible.builtin.file:
+    path: ../pipeline_{{ pipeline.key }}_processor/instances/{{ worker_num }}
+    state: directory
+    mode: "0755"
+#copy conf files
+- name: Copy over {{ pipeline.key }} processor steps
+  copy:
+    src: "{{ item }}"
+    dest: "../pipeline_{{ pipeline.key }}_processor/instances/{{ worker_num }}/"
+    mode: 0644
+  with_fileglob:
+    - "../pipeline_{{ pipeline.key }}_processor/*.conf"
+#Configure logstash input plugins
+- name: "Apply 01-inputs_processor.conf template"
+  template:
+    src: "templates/{{ pipeline.key }}/01-inputs_processor.conf.j2"
+    dest: "../pipeline_{{ pipeline.key }}_processor/instances/{{ worker_num }}/01-inputs.conf"
+#Configure logstash output plugins
+- name: "Apply 99-outputs_processor.conf template"
+  template:
+    src: "templates/{{ pipeline.key }}/99-outputs_processor.conf.j2"
+    dest: "../pipeline_{{ pipeline.key }}_processor/instances/{{ worker_num }}/99-outputs.conf"

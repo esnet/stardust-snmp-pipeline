@@ -1,0 +1,44 @@
+{% if "debug" in pipeline_aggregate.output_plugins %}
+output {
+    #-- For testing: To write all output to screen
+    stdout { codec => rubydebug { metadata => true } }
+}
+{% endif %}
+{% if "devnull" in pipeline_aggregate.output_plugins %}
+output {
+    file { "path" => "/dev/null" }
+}
+{% endif %}
+{% if "elastic" in pipeline_aggregate.output_plugins %}
+output {
+{% for record_type in record_types %}
+{% if loop.first %}
+    if [type] == "{{ record_type }}" {
+{% else %}
+    else if [type] == "{{ record_type }}" {
+{% endif %}
+        elasticsearch {
+                hosts => [
+{% for elastic_host in elastic_hosts %}
+                "https://{{ elastic_host.host }}:{{elastic_host.port}}"{{ "," if not loop.last else "" }}
+{% endfor %}
+                ]
+{% if elastic_output_use_auth is defined and elastic_output_use_auth %}
+                ssl => "true"
+                cacert => "/etc/stardust/pipeline/certificates/elastic.cer"
+                ssl_certificate_verification => false
+                user => "{{ elastic_output_user }}"
+                password => "{{ elastic_output_password }}"
+{% endif %}
+                manage_template => false
+{% if elastic_output_ilm is defined and elastic_output_ilm %}
+                ilm_enabled => "true"
+                ilm_pattern => "{now/d}-000001"
+                ilm_rollover_alias => "stardust_{{ record_type }}"
+                ilm_policy => "timeseries-snmp"
+{% endif %}
+        }
+    }
+{% endfor %}
+}
+{% endif %}

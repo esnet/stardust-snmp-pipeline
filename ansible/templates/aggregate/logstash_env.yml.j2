@@ -1,0 +1,45 @@
+---
+pipeline_aggregate:
+  input_plugins:
+    - kafka
+
+  output_plugins:
+{% if elastic_hosts is defined %}
+    - elastic
+{%endif%}
+{% if pipelines.aggregate.get("debug", False) %}
+    - debug
+{%endif%}
+
+#Setup to talk to Kafka using auo-discovered values
+  logstash_env:
+    #Logstash-defined environment variables
+    LOG_LEVEL: info
+    #redis environment variables
+    REDIS_URL: {{ redis.url }}
+    REDIS_CLIENT_POOL_SIZE: {{ redis.client_pool_size }}
+    REDIS_CLIENT_POOL_MAX_IDLE: {{ redis.client_pool_max_idle }}
+    REDIS_CLIENT_POOL_MAX_WAIT: {{ redis.client_pool_max_wait }}
+    #In-memory cache for tracking normalized value fields
+    RATE_CACHE_MAX_ENTRIES: {{ rate_cache.max_entries }}
+    RATE_CACHE_EXPIRES: {{ rate_cache.expires }}
+    #Kafka settings
+    kafka_input_group_id: stardust_snmp_agg_{{ environment_type }}
+{% if environment_type is defined and environment_type == "local" %}
+    kafka_input_bootstrap_servers: "kafka:9092"
+    kafka_input_topic: stardust_snmp_aggregate
+    kafka_input_client_id: {{ ansible_hostname }}
+{% else %}
+    kafka_input_bootstrap_servers: "{{ pipelines.aggregate.kafka.input.bootstrap_server }}:{{ pipelines.aggregate.kafka.input.port }}"
+    kafka_input_topic: stardust_snmp_aggregate
+    #optimizations we use in production
+    kafka_input_consumer_threads: 1
+    kafka_input_max_poll_records: 5000
+    kafka_input_max_poll_interval_ms: 300000
+    #Do NOT set kafka_input_client_id since template will set to pod name
+    kafka_input_ssl_keystore_location: /etc/stardust/pipeline/certificates/kafka_aggregate_input_user.p12
+    kafka_input_ssl_key_password: {{ pipelines.aggregate.kafka.input.client_key_password }}
+    kafka_input_ssl_keystore_password: {{ pipelines.aggregate.kafka.input.client_key_password }}
+    kafka_input_ssl_truststore_location: /etc/stardust/pipeline/certificates/kafka_aggregate_input_ca.p12
+    kafka_input_ssl_truststore_password: {{ pipelines.aggregate.kafka.input.client_truststore_password }}
+{%endif%}

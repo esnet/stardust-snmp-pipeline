@@ -1,0 +1,19 @@
+---
+## Role Tasks
+- name: Remove old certificate directory
+  ansible.builtin.file:
+    path: ../pipeline_etc/certificates
+    state: absent
+  when: environment_type != 'local'
+- name: Create a directory for certificate
+  ansible.builtin.file:
+    path: ../pipeline_etc/certificates
+    state: directory
+    mode: "0755"
+  when: environment_type != 'local'
+- name: Get Elastic Certificate
+  get_certificate:
+    host: "{{ elastic_hosts[0].host }}"
+    port: "{{ elastic_hosts[0].port }}"
+  register: elastic_certificate
+  when: elastic_hosts is defined and elastic_hosts[0] is defined

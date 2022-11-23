@@ -1,0 +1,35 @@
+#Set the environment - defaults to dev-staging
+#environment_type: local
+#environment_type: prod
+environment_type: dev-staging
+
+#Variables shared between environments
+cluster_name: snmp-logstash-pipeline
+ansible_python_interpreter: "{{ ansible_playbook_python }}"
+redis_version: 6.2.4
+redis: 
+  url: redis://redis:6379
+  client_pool_size: 3000
+  client_pool_max_idle: 150 #try to keep this high enough so rarely need new connections
+  client_pool_max_wait: 5 #seconds
+rate_cache:
+  # Note: As of writing this comment:
+  #   - 188 bytes is average size of cache entry
+  #   - 18 average rates per message
+  #      - 400 possible rate fields (not in every message)
+  #   - 17k messages per 30 sec. 
+  #   - Multiple above by 2 x expires (in minutes) to get estimate of size in memory
+  max_entries: 10000000 #should hold over 10 minutes of rates and max at < 2GB of memory
+  expires: 600 #seconds
+# Below corresponds to elastic type fields. Need these in elastic
+# output plugin since can't use variable substitution in
+# index names when using ILM and rollover aliases.
+record_types:
+  - interface
+  - device
+  - pdu_outlet
+  - chassis_part
+  - transponder_port
+  - transponder_channel
+
+load_file_based: true

@@ -1,0 +1,20 @@
+PUT _index_template/stardust_chassis_part
+{
+  "template": {
+    "settings": {
+      "index": {
+        "lifecycle": {
+          "name": "timeseries-snmp",
+          "rollover_alias": "stardust_chassis_part"
+        }
+      }
+    }
+  },
+  "index_patterns": [
+    "stardust_chassis_part-*"
+  ],
+  "composed_of": [
+    "stardust_base_mappings",
+    "stardust_small_lowrefresh_settings"
+  ]
+}

@@ -1,0 +1,81 @@
+PUT _component_template/stardust_base_mappings
+{
+  "version": 1,
+  "template": {
+    "mappings": {
+      "_source": {
+        "excludes": [],
+        "includes": [],
+        "enabled": true
+      },
+      "_routing": {
+        "required": false
+      },
+      "dynamic": true,
+      "numeric_detection": false,
+      "date_detection": true,
+      "dynamic_date_formats": [
+        "strict_date_optional_time",
+        "yyyy/MM/dd HH:mm:ss Z||yyyy/MM/dd Z"
+      ],
+      "dynamic_templates": [
+        {
+          "ip_field": {
+            "mapping": {
+              "type": "ip"
+            },
+            "match": "ip"
+          }
+        },
+        {
+          "ipv4_field": {
+            "mapping": {
+              "type": "ip"
+            },
+            "match": "ipv4"
+          }
+        },
+        {
+          "ipv6_field": {
+            "mapping": {
+              "type": "ip"
+            },
+            "match": "ipv6"
+          }
+        },
+        {
+          "ip_suffix_field": {
+            "mapping": {
+              "type": "ip"
+            },
+            "match": "*_ip"
+          }
+        },
+        {
+          "location": {
+            "mapping": {
+              "type": "geo_point"
+            },
+            "match": "location"
+          }
+        },
+        {
+          "location_suffix_field": {
+            "mapping": {
+              "type": "geo_point"
+            },
+            "match": "*_location"
+          }
+        },
+        {
+          "default_string_to_keyword": {
+            "match_mapping_type": "string",
+            "mapping": {
+              "type": "keyword"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

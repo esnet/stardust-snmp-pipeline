@@ -1,0 +1,80 @@
+- name: Remove script directory
+  ansible.builtin.file:
+    path: ../scripts
+    state: absent
+- name: Create scripts directory
+  ansible.builtin.file:
+    path: ../scripts
+    state: directory
+- name: Remove gcloud conf directory
+  ansible.builtin.file:
+    path: ../conf/gcloud
+    state: absent
+- name: "Remove Logstash environment file"
+  ansible.builtin.file:
+    path: "vars/logstash_env.{{ item }}.yml"
+    state: absent
+  with_items: 
+    - aggregate
+    - ingest
+- name: Remove 01-input.conf
+  ansible.builtin.file:
+    path: "../conf/logstash.{{ item }}.yml"
+    state: absent
+  with_items: 
+    - aggregate
+    - ingest
+- name: Remove 99-outputs.conf
+  ansible.builtin.file:
+    path: "../pipeline_{{ item }}/99-outputs.conf"
+    state: absent
+  with_items: 
+    - aggregate
+    - ingest
+- name: Remove .env
+  ansible.builtin.file:
+    path: "../.{{ item }}.env"
+    state: absent
+  with_items: 
+    - aggregate
+    - ingest
+- name: Remove logstash.yml
+  ansible.builtin.file:
+    path: "../conf/logstash.{{ item }}.yml"
+    state: absent
+  with_items: 
+    - aggregate
+    - ingest
+- name: Remove pipelines.yml
+  ansible.builtin.file:
+    path: "../conf/pipelines.{{ item }}.yml"
+    state: absent
+  with_items: 
+    - aggregate
+    - ingest
+- name: Remove jvm.options
+  ansible.builtin.file:
+    path: "../conf/jvm.{{ item }}.options"
+    state: absent
+  with_items: 
+    - aggregate
+    - ingest
+- name: Remove logstash-deployment.yml
+  ansible.builtin.file:
+    path: ./k8s/logstash-deployment.yml
+    state: absent
+- name: Remove redis-deployment.yml
+  ansible.builtin.file:
+    path: ./k8s/redis-deployment.yml
+    state: absent
+- name: Remove Kafka Certificate files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - ../pipeline_etc/certificates/kafka_ca.crt
+    - ../pipeline_etc/certificates/kafka_ca.p12
+    - ../pipeline_etc/certificates/kafka_user.crt
+    - ../pipeline_etc/certificates/kafka_user.key
+    - ../pipeline_etc/certificates/kafka_user.p12
+    - ../pipeline_etc/certificates/elastic.cer

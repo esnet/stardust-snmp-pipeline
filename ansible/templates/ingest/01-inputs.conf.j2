@@ -1,0 +1,43 @@
+{% if "kafka" in pipeline_ingest.input_plugins %}
+
+{% for kafka_topic in pipelines.ingest.kafka.input.topics %}
+input {
+    kafka {
+        bootstrap_servers => "${kafka_input_bootstrap_servers}"
+        topics => ["{{ kafka_topic.name }}"]
+        add_field => { "[@parser]" => "{{ kafka_topic.parser }}" }
+        decorate_events => "basic"
+        codec => "json"
+        auto_offset_reset => "${kafka_input_auto_offset_reset:latest}"
+        group_id => "${kafka_input_group_id}"
+{% if pipeline_ingest.logstash_env is defined and pipeline_ingest.logstash_env.kafka_input_client_id is defined %}
+        client_id => "${kafka_input_client_id:stardust_client}"
+{% else %}
+        client_id => "${pod_name}"
+{% endif %}
+{% if pipeline_ingest.logstash_env is defined and pipeline_ingest.logstash_env.kafka_input_consumer_threads is defined %}
+        consumer_threads => "${kafka_input_consumer_threads}"
+{% endif %}
+{% if pipeline_ingest.logstash_env is defined and pipeline_ingest.logstash_env.kafka_input_max_poll_records is defined %}
+        max_poll_records => "${kafka_input_max_poll_records}"
+{% endif %}
+{% if pipeline_ingest.logstash_env is defined and pipeline_ingest.logstash_env.kafka_input_max_poll_interval_ms is defined %}
+        max_poll_interval_ms => "${kafka_input_max_poll_interval_ms}"
+{% endif %}
+{% if pipeline_ingest.logstash_env is defined and pipeline_ingest.logstash_env.kafka_session_timeout_ms is defined %}
+        session_timeout_ms => "${kafka_session_timeout_ms}"
+{% endif %}
+{% if kafka_input_ssl_enable is defined and kafka_input_ssl_enable %}
+        security_protocol => "SSL"
+        ssl_keystore_location => "${kafka_input_ssl_keystore_location}"
+        ssl_keystore_password => "${kafka_input_ssl_keystore_password}"
+        ssl_key_password => "${kafka_input_ssl_key_password}"
+        ssl_truststore_location => "${kafka_input_ssl_truststore_location}"
+        ssl_truststore_password => "${kafka_input_ssl_truststore_password}"
+{% endif %}
+    }
+}
+{% endfor %}
+
+{% endif %}
+

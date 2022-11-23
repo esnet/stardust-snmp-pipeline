@@ -1,0 +1,56 @@
+#Pipeline specific parameters
+pipelines:
+  aggregate:
+    replicas: 20
+    mem: 4Gi
+    jvm_xms: 2g
+    jvm_xmx: 2g
+    cpus: 1
+    kafka:
+      client_key_password: CHANGEME
+      client_truststore_password: CHANGEME
+      input:
+        bootstrap_server: 127.0.0.1
+        client_key_password: CHANGEME
+        client_truststore_password: CHANGEME
+        port: 9094
+  ingest:
+    replicas: 4
+    mem: 16Gi
+    jvm_xms: 8g
+    jvm_xmx: 8g
+    cpus: 6
+    workers: 18
+    kafka:
+      input:
+        bootstrap_server: 127.0.0.1
+        port: 9094
+        client_key_password: CHANGEME
+        client_truststore_password: CHANGEME
+        #change this to 'earliest' if want to replay all events kafka has after deleting consumer group
+        auto_offset_reset: latest
+        topics:
+          - name: stardust_snmp
+            parser: snmp
+          - name: stardust_transponder
+            parser: transponder
+      output:
+        bootstrap_server: 127.0.0.1
+        client_key_password: CHANGEME
+        client_truststore_password: CHANGEME
+        port: 9094
+
+#Global parameters
+elastic_output_user: elastic
+elastic_output_password: CHANGEME
+elastic_hosts:
+  - host: 10.1.1.1
+    port: 9200
+  - host: 10.1.1.2
+    port: 9200
+  - host: 10.1.1.3
+    port: 9200
+elastic_output_ilm: true
+elastic_output_use_auth: true
+kafka_input_ssl_enable: true
+monitoring_cluster_uuid: CHANGEME

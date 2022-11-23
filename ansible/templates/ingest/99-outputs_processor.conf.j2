@@ -1,0 +1,35 @@
+{% if "debug" in pipeline_ingest.output_plugins %}
+output {
+    #-- For testing: To write all output to screen
+    stdout { codec => rubydebug { metadata => true } }
+}
+{% endif %}
+{% if "devnull" in pipeline_ingest.output_plugins %}
+output {
+    file { "path" => "/dev/null" }
+}
+{% endif %}
+{% if "kafka" in pipeline_ingest.output_plugins %}
+output {
+    kafka {
+          bootstrap_servers => "${kafka_output_bootstrap_servers}"
+          topic_id => "${kafka_output_topic}"
+          codec => "json"
+          message_key => "%{[meta][id]}"
+{% if pipeline_ingest.logstash_env is defined and pipeline_ingest.logstash_env.kafka_input_client_id is defined %}
+          # Use the same client id as the input stage.
+          client_id => "${kafka_output_client_id:stardust_client}"
+{% else %}
+          client_id => "${pod_name}"
+{% endif %}
+{% if kafka_input_ssl_enable is defined and kafka_input_ssl_enable %}
+          security_protocol => "SSL"
+          ssl_keystore_location => "${kafka_output_ssl_keystore_location}"
+          ssl_keystore_password => "${kafka_output_ssl_keystore_password}"
+          ssl_key_password => "${kafka_output_ssl_key_password}"
+          ssl_truststore_location => "${kafka_output_ssl_truststore_location}"
+          ssl_truststore_password => "${kafka_output_ssl_truststore_password}"
+{% endif %}
+    }
+}
+{% endif %}

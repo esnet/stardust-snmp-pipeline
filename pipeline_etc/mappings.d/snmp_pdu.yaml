@@ -1,0 +1,163 @@
+---
+#################
+# The configuration maps metadata and data from SNMP PDUs from multiple vendors.
+#
+# How to add new mappings:
+#  The key maps the measurement name set in the collector. Usually starts wwith 'snmp' followed by a variation of the MIB name.
+#################
+
+##
+# type: pdu_outlet
+# mibs: ALPHA-RESOURCE-MIB
+#
+# Rules for mapping Alpha PDU controller information
+snmp_alpha:
+  type: pdu_outlet
+  meta_maps:
+    - name: alpha_sys_meta
+      key:
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[meta][oid_index]'
+      fields:
+        - source: '[fields][SNMP_ALPHA-RESOURCE-MIB::componentListConfiguredName.34]'
+          target: sys_name
+    - name: alpha_subsys_meta
+      key:
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[meta][oid_index]'
+      fields:
+        - source: '[fields][SNMP_ALPHA-RESOURCE-MIB::componentListConfiguredName.36]'
+          target: subsys_name
+        - source: '[fields][SNMP_ALPHA-RESOURCE-MIB::componentListSystemPointer.36]'
+          target: sys_id
+          type: string
+          regex: '\.(\d+)$'
+          group: 1
+    - name: alpha_bus_meta
+      key:
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[meta][oid_index]'
+      fields:
+        - source: '[fields][SNMP_ALPHA-RESOURCE-MIB::componentListConfiguredName.35]'
+          target: bus_name
+        - source: '[fields][SNMP_ALPHA-RESOURCE-MIB::componentListSystemPointer.35]'
+          target: subsys_id
+          type: string
+          regex: '\.(\d+)$'
+          group: 1
+  value_maps:
+    - id: alpha:voltage
+      source: '[fields][SNMP_ALPHA-RESOURCE-MIB::dataNumberValue.35.1]'
+      target: '[values][voltage]'
+      type: int
+      no_rate: true
+      no_delta: true
+    - id: alpha:current
+      source: '[fields][SNMP_ALPHA-RESOURCE-MIB::dataNumberValue.35.2]'
+      target: '[values][current]'
+      type: int
+      no_rate: true
+      no_delta: true
+  value_id:
+    aggregate: false
+    key:
+      - type: field
+        parents:
+          - '[meta][device]'
+        params:
+          source: '[meta][oid_index]'
+
+##
+# type: pdu_outlet
+# mibs: Sentry4-MIB
+#
+# Rules for mapping data from Sentry4 PDUs
+snmp_sentry4:
+  type: pdu_outlet
+  meta_maps:
+    - name: pdu_outlet_meta
+      key:
+        # Get the if index
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[meta][oid_index]'
+      fields:
+        - source: '[fields][SNMP_Sentry4-MIB::st4OutletID]'
+          target: outlet_id
+        - source: '[fields][SNMP_Sentry4-MIB::st4OutletName]'
+          target: name
+  value_maps:
+    - id: pdu_outlet:current
+      source: '[fields][SNMP_Sentry4-MIB::st4OutletCurrent]'
+      target: '[values][current]'
+      type: int
+      no_rate: true
+      no_delta: true
+  value_id:
+    aggregate: false
+    key:
+      - type: field
+        parents:
+          - '[meta][device]'
+        params:
+          source: '[meta][oid_index]'
+
+##
+# type: pdu_outlet
+# mibs: Sentry3-MIB
+#
+# Rules for mapping data from Sentry3 PDUs (ESnet5)
+snmp_sentry3:
+  type: pdu_outlet
+  meta_maps:
+    - name: pdu_outlet_meta
+      key:
+        # Get the if index
+        - type: field
+          parents:
+            - '[meta][device]'
+          params:
+            source: '[meta][oid_index]'
+      fields:
+        - source: '[fields][SNMP_Sentry3-MIB::outletID]'
+          target: outlet_id
+        - source: '[fields][SNMP_Sentry3-MIB::outletNames]'
+          target: name
+  value_maps:
+    - id: pdu_outlet:ctrl_state
+      source: '[fields][SNMP_Sentry3-MIB::outletControlState]'
+      target: '[values][ctrl_state]'
+      type: int
+      no_rate: true
+      no_delta: true
+    - id: pdu_outlet:load
+      source: '[fields][SNMP_Sentry3-MIB::outletLoadValue]'
+      target: '[values][load]'
+      type: int
+      no_rate: true
+      no_delta: true
+    - id: pdu_outlet:status
+      source: '[fields][SNMP_Sentry3-MIB::outletStatus]'
+      target: '[values][status]'
+      type: int
+      no_rate: true
+      no_delta: true
+  value_id:
+    aggregate: false
+    key:
+      - type: field
+        parents:
+          - '[meta][device]'
+        params:
+          source: '[meta][oid_index]'

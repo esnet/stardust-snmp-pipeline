@@ -1,0 +1,20 @@
+PUT _index_template/stardust_pdu_outlet
+{
+  "template": {
+    "settings": {
+      "index": {
+        "lifecycle": {
+          "name": "timeseries-snmp",
+          "rollover_alias": "stardust_pdu_outlet"
+        }
+      }
+    }
+  },
+  "index_patterns": [
+    "stardust_pdu_outlet-*"
+  ],
+  "composed_of": [
+    "stardust_base_mappings",
+    "stardust_small_lowrefresh_settings"
+  ]
+}

@@ -1,0 +1,60 @@
+---
+pipeline_ingest:
+  input_plugins:
+    - kafka
+
+  output_plugins:
+{% if pipelines.ingest.kafka.output.bootstrap_server is defined %}
+    - kafka
+{%endif%}
+{% if pipelines.ingest.get("debug", False) %}
+    - debug
+{%endif%}
+
+#Setup to talk to Kafka using auo-discovered values
+  logstash_env:
+    #Logstash-defined environment variables
+    LOG_LEVEL: info
+    #redis environment variables
+    REDIS_URL: {{ redis.url }}
+    REDIS_CLIENT_POOL_SIZE: {{ redis.client_pool_size }}
+    REDIS_CLIENT_POOL_MAX_IDLE: {{ redis.client_pool_max_idle }}
+    REDIS_CLIENT_POOL_MAX_WAIT: {{ redis.client_pool_max_wait }}
+    #In-memory rate cache environment variables
+    RATE_CACHE_MAX_ENTRIES: {{ rate_cache.max_entries }}
+    RATE_CACHE_EXPIRES: {{ rate_cache.expires }}
+    INGEST_PROCESSORS: {{ pipelines.ingest.workers}}
+    #Kafka settings
+    kafka_input_group_id: stardust_snmp_ingest_{{ environment_type }}
+{% if environment_type is defined and environment_type == "local" %}
+    kafka_input_bootstrap_servers: "kafka:9092"
+    kafka_input_client_id: {{ ansible_hostname }}
+    kafka_output_bootstrap_servers: "kafka:9092"
+    kafka_output_topic: stardust_snmp_aggregate
+    kafka_output_client_id: {{ ansible_hostname }}
+{% else %}
+    #Input settings
+    kafka_input_bootstrap_servers: "{{ pipelines.ingest.kafka.input.bootstrap_server }}:{{ pipelines.ingest.kafka.input.port}}"
+    #optimizations we use in production
+    kafka_input_consumer_threads: 5
+    kafka_input_max_poll_records: 1000
+    kafka_input_max_poll_interval_ms: 300000
+    kafka_session_timeout_ms: 60000
+    #Do NOT set kafka_input_client_id since template will set to pod name
+    kafka_input_ssl_keystore_location: /etc/stardust/pipeline/certificates/kafka_ingest_input_user.p12
+    kafka_input_ssl_key_password: {{ pipelines.ingest.kafka.input.client_key_password }}
+    kafka_input_ssl_keystore_password: {{ pipelines.ingest.kafka.input.client_key_password }}
+    kafka_input_ssl_truststore_location: /etc/stardust/pipeline/certificates/kafka_ingest_input_ca.p12
+    kafka_input_ssl_truststore_password: {{ pipelines.ingest.kafka.input.client_truststore_password }}
+    kafka_input_auto_offset_reset: {{ pipelines.ingest.kafka.input.auto_offset_reset }}
+
+    #Output settings
+    kafka_output_bootstrap_servers: "{{ pipelines.ingest.kafka.output.bootstrap_server }}:{{ pipelines.ingest.kafka.output.port }}"
+    kafka_output_topic: stardust_snmp_aggregate
+    kafka_output_ssl_keystore_location: /etc/stardust/pipeline/certificates/kafka_ingest_output_user.p12
+    kafka_output_ssl_key_password: {{ pipelines.ingest.kafka.output.client_key_password }}
+    kafka_output_ssl_keystore_password: {{ pipelines.ingest.kafka.output.client_key_password }}
+    kafka_output_ssl_truststore_location: /etc/stardust/pipeline/certificates/kafka_ingest_output_ca.p12
+    kafka_output_ssl_truststore_password: {{ pipelines.ingest.kafka.output.client_truststore_password }}
+
+{%endif%}

@@ -1,0 +1,3 @@
+- name: Create local docker network
+  docker_network:
+    name: stardust_snmp

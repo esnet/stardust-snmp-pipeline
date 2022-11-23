@@ -1,0 +1,51 @@
+---
+#################
+# The configuration maps metadata and data from SNMP about the device
+#
+# How to add new mappings:
+#  The key maps the measurement name set in the collector. Usually starts wwith 'snmp' followed by a variation of the MIB name.
+#################
+
+##
+# type: device
+# mibs: TIMETRA-SYSTEM-MIB
+#
+# Rules for mapping info about parts of a Nokia router stats.
+# Currently there is no metadata beyond the device name
+snmp_timetra_sys:
+  type: device
+  value_maps:
+    #the total pre-allocated pool memory currently in use on the system.
+    #converts kilobytes to bytes
+    - id: device:mem_used_bytes
+      source: '[fields][SNMP_TIMETRA-SYSTEM-MIB::sgiKbMemoryUsed]'
+      target: '[values][mem_used_bytes]'
+      type: int
+      scale: 1000
+      no_rate: true
+      no_delta: true
+    ## The CPU stats have an oid index indicating the sample size in seconds (e.g 1 = second, 300 = 5 minutes)
+    # The value of tmnxSysCpuMonBusyCoreUtil indicates the utilization percentage of the busiest processor core over the specified sample-time. 
+    # On single core CPUs, this is the overall system utilization percentage over the specified sample-time.
+    # Note: Of type TmnxSysMonUtilization which specifies the utilization/idle percentage (in terms 100ths of a percent) for a given sample-time (i.e. devide by 100 and slap a % at the end).
+    - id: device:cpu_busy_util
+      source: '[fields][SNMP_TIMETRA-SYSTEM-MIB::tmnxSysCpuMonBusyCoreUtil]'
+      target_pattern: '[values][cpu_busy_util_%{[meta][oid_index]}]'   
+      type: int
+      no_rate: true
+      no_delta: true
+    # The value of tmnxSysCpuMonCpuIdle indicates the overall percentage of CPU idleness over the specified sample-time
+    # Note: Of type TmnxSysMonUtilization which specifies the utilization/idle percentage (in terms 100ths of a percent) for a given sample-time (i.e. devide by 100 and slap a % at the end).
+    - id: device:cpu_idle
+      source: '[fields][SNMP_TIMETRA-SYSTEM-MIB::tmnxSysCpuMonCpuIdle]'
+      target_pattern: '[values][cpu_idle_%{[meta][oid_index]}]'      
+      type: int
+      no_rate: true
+      no_delta: true
+  value_id:
+    #Aggregate because stats come in as different events
+    aggregate: true
+    key:
+      - type: field
+        params:
+          source: '[meta][device]'

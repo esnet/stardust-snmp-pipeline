@@ -1,0 +1,11 @@
+---
+## Role Tasks
+- name: Setting facts so that they will be persisted in the fact cache
+  set_fact:
+    stardust_auto_version: "1.9.3"
+- name: Invoke Local Context
+  include_tasks: local.yml
+  when: environment_type == 'local'
+- name: Set production Logstash docker tag
+  set_fact:
+    logstash_docker_tag: "v{{ stardust_auto_version }}"

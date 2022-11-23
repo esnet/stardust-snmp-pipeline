@@ -1,0 +1,13 @@
+output {
+    ##
+    #Route to the correct worker thread. We can use vaariable in output name, so use the giat if statement
+{% for n in range(pipelines.ingest.workers) %}
+{% if loop.first %}
+    if [@metadata][route_id] == {{ n }} {
+{% else %}
+    else if [@metadata][route_id] == {{ n }} {
+{% endif %}
+        pipeline { send_to => "snmp_ingest_processor{{ n }}" }
+    }
+{% endfor %}
+}

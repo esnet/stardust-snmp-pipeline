@@ -1,0 +1,2 @@
+{"fields":{"SNMP_IF-MIB::ifHCInOctets":0,"SNMP_IF-MIB::ifHCOutOctets":0},"name":"snmp_if","tags":{"collector":"sourceHostname","date":"Sun Jul 25 13:52:03 +0000 UTC 2021","device":"chic-cr55.es.net","interval":"30","oidIndex":"1611161731","type":"snmp"},"timestamp":1627221183}
+{"fields":{"SNMP_IF-MIB::ifHCInOctets":1000000,"SNMP_IF-MIB::ifHCOutOctets":2000000},"name":"snmp_if","tags":{"collector":"sourceHostname","date":"Sun Jul 25 13:52:32 +0000 UTC 2021","device":"chic-cr55.es.net","interval":"30","oidIndex":"1611161731","type":"snmp"},"timestamp":1627221212}

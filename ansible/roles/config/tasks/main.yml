@@ -1,0 +1,74 @@
+- name: Generate Elastic certificate file
+  ansible.builtin.copy:
+    content: "{{ elastic_certificate.cert }}"
+    dest: ../pipeline_etc/certificates/elastic.cer
+  when: elastic_certificate is defined and elastic_certificate.cert is defined
+# Configure pipeline config logstash ingest and aggregate stages
+- name: "Generate Logstash environment file"
+  template:
+    src: "templates/{{ item.key }}/logstash_env.yml.j2"
+    dest: "vars/logstash_env.{{ item.key }}.yml"
+  with_items: "{{ pipelines | dict2items }}"
+- name: "Load Logstash environment"
+  include_vars:
+    file: "vars/logstash_env.{{ item.key }}.yml"
+  with_items: "{{ pipelines | dict2items }}"
+#Configure logstash input plugins
+- name: "Apply 01-inputs.conf template"
+  template:
+    src: "templates/{{ item.key }}/01-inputs.conf.j2"
+    dest: "../pipeline_{{ item.key }}/01-inputs.conf"
+  with_items: "{{ pipelines | dict2items }}"
+#Configure logstash output plugins
+- name: "Apply 99-outputs.conf template"
+  template:
+    src: "templates/{{ item.key }}/99-outputs.conf.j2"
+    dest: "../pipeline_{{ item.key }}/99-outputs.conf"
+  with_items: "{{ pipelines | dict2items }}"
+#Configure logstash.yml
+- name: "Apply logstash.yml template"
+  template:
+    src: "templates/{{ item.key }}/logstash.yml.j2"
+    dest: "../conf/logstash.{{ item.key }}.yml"
+  with_items: "{{ pipelines | dict2items }}"
+#Configure pipelines.yml
+- name: "Apply pipelines.yml template"
+  template:
+    src: "templates/{{ item.key }}/pipelines.yml.j2"
+    dest: "../conf/pipelines.{{ item.key }}.yml"
+  with_items: "{{ pipelines | dict2items }}"
+#Configure jvm.options in non-local context
+- name: "Apply jvm.options template"
+  template:
+    src: "templates/{{ item.key }}/jvm.options.j2"
+    dest: "../conf/jvm.{{ item.key }}.options"
+  when: environment_type != 'local'
+  with_items: "{{ pipelines | dict2items }}"
+#Configure logstash docker environment
+- name: "Apply logstash_docker_env to create .env"
+  template:
+    src: "templates/{{ item.key }}/logstash_docker_env.j2"
+    dest: "../.{{ item.key }}.env"
+  with_items: "{{ pipelines | dict2items }}"
+##
+# Handle generating the processors (essentally subpipelines within pipelines)
+- name: Iterate through processors (subpipelines) for each pipeline
+  include_tasks: processors.yml
+  when: pipeline.value.workers is defined
+  with_items: "{{ pipelines | dict2items }}"
+  loop_control:
+    loop_var: pipeline
+##
+# Generate mappings.yaml from include directory
+- name: Merge mappings.d YAML includes into a single dictionary
+  set_fact:
+    pipeline_mappings_yml: "{{ pipeline_mappings_yml | default({}) | combine(lookup('file', item)| from_yaml) }}"
+  with_fileglob: ../pipeline_etc/mappings.d/*.yaml
+  tags: 
+    - docker_build
+- name: Generate mappings.yaml
+  template:
+    src: templates/mappings.yaml.j2
+    dest: ../pipeline_etc/mappings.yaml
+  tags: 
+    - docker_build

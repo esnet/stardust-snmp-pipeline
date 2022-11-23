@@ -1,0 +1,56 @@
+version: "3.7"
+services:
+  logstash_ingest:
+    image: stardust-snmp-pipeline-oss:latest
+    build:
+      dockerfile: docker/Dockerfile
+      context: .
+    restart: on-failure
+    env_file: .ingest.env
+    volumes:
+      - ./pipeline_ingest:/usr/share/logstash/pipeline_ingest/
+      - ./pipeline_ingest_processor:/usr/share/logstash/pipeline_ingest_processor/
+      - ./conf/logstash.ingest.yml:/usr/share/logstash/config/logstash.yml
+      - ./conf/pipelines.ingest.yml:/usr/share/logstash/config/pipelines.yml
+      - ./pipeline_etc/certificates:/etc/stardust/pipeline/certificates
+  logstash_aggregate:
+    image: stardust-snmp-pipeline-oss:latest
+    restart: on-failure
+    env_file: .aggregate.env
+    volumes:
+      - ./pipeline_aggregate:/usr/share/logstash/pipeline_aggregate/
+      - ./conf/logstash.aggregate.yml:/usr/share/logstash/config/logstash.yml
+      - ./conf/pipelines.aggregate.yml:/usr/share/logstash/config/pipelines.yml
+      - ./pipeline_etc/certificates:/etc/stardust/pipeline/certificates
+  redis:
+    image: redis:6.2.4
+    restart: on-failure
+    env_file: .ingest.env
+    ports:
+      - "6379:6379"
+  zookeeper:
+    image: 'bitnami/zookeeper:3'
+    ports:
+      - '2181:2181'
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+  kafka:
+    image: 'bitnami/kafka:latest'
+    ports:
+      - '9092'
+      - '29091:29091'
+    volumes:
+      - ./conf:/etc/kafka_client
+      - ./tests:/usr/lib/stardust/tests
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,PLAINTEXT_HOST://:29091
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29091
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_DELETE_TOPIC_ENABLE=true
+networks:
+  default:
+    external:
+      name: stardust_snmp

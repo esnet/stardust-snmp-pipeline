@@ -1,0 +1,65 @@
+## Begin Loading ENV values
+- name: Setup env type and secret/env lookup keys
+  set_fact:
+    environment_type: "{{ environment_type|default('dev-staging') }}"
+    secret_key: "secret-{{ environment_type|default('dev-staging') }}"
+    environment_shared_key: "shared_{{ environment_type| replace('-', '_') }}"
+- name: Attempt to Load File based vars
+  include_vars:
+    file: "{{ environment_type}}.yml"
+  ignore_errors: True
+  when: load_file_based
+- name: Attempt to Load File based Secrets
+  include_vars:
+    file: "vault/secret-{{ environment_type}}.yml"
+  ignore_errors: True
+  when: load_file_based
+- name: Attempt to Load Env dictionaries
+  set_fact:
+    env_values: "{{ lookup('vars', environment_type) }} "
+  ignore_errors: True
+  register: status
+- name: Attempt to Load Shared Env dictionaries
+  set_fact:
+    shared_env_values: "{{ lookup('vars', environment_shared_key) }} "
+  ignore_errors: True
+- name: Set Env flag if Per Env Settings are configured
+  set_fact:
+    load_env: "{{not status.failed}}"
+- name: Set a Fallback value of env if missing
+  set_fact:
+    load_env: "{{ dummy|default({}) }}"
+  when: not load_env
+- name: Update environment variables
+  set_fact:
+    "{{item.key}}": "{{item.value}}"
+  loop: "{{ env_values|dict2items if load_env else []}}"
+##Begin Secret
+- name: Attempt to Load Secret Env dictionaries
+  set_fact:
+    secret_values: "{{ lookup('vars', secret_key) }} "
+  ignore_errors: True
+  register: status
+  tags:
+    - secret
+- name: Set Secret Env flag if Per Secret Settings are configured
+  set_fact:
+    load_secret_env: "{{not status.failed}}"
+  tags:
+    - secret
+- name: Set a Fallback value of env if missing
+  set_fact:
+    secret_values: "{{ dummy|default({}) }}"
+  when: not load_secret_env
+  tags:
+    - secret
+- name: Update secret variables
+  set_fact:
+    "{{item.key}}": "{{item.value}}"
+  loop: "{{ secret_values|dict2items if load_secret_env else []}}"
+  tags:
+    - secret
+## Begin ENV namespacing
+- name: Update environment variables
+  set_fact:
+    cluster_name: "{{ environment_type|default('dev-staging') }}-{{ cluster_name }}"

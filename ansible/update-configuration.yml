@@ -1,0 +1,19 @@
+---
+- name: Stardust SNMP Pipeline Setup for  "{{ environment_type|default('dev-staging') }}"
+  hosts: all
+  vars_files:
+    - vars/default.yml
+  roles:
+    - role: load_environment
+    - role: context
+    - role: reset
+    - role: elastic_inspect
+    - role: config
+
+  tasks:
+    - name: Generating configuration
+      debug:
+        msg: "Loading config for env: {{ environment_type}}"
+    - name: Reset Context
+      include_role:
+        name: context

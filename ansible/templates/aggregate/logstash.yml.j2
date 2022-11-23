@@ -1,0 +1,9 @@
+log.level: "info"
+pipeline.workers: "1"
+pipeline.batch.size: "15000"
+monitoring.enabled: "false"
+{% if monitoring_cluster_uuid is defined %}
+monitoring.cluster_uuid: "{{ monitoring_cluster_uuid }}"
+http.host: "0.0.0.0"
+http.port: "9600"
+{% endif %}

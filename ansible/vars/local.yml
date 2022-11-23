@@ -1,0 +1,25 @@
+elastic_output_user: local
+elastic_output_password: local
+#Pipeline specific parameters
+pipelines:
+  aggregate:
+    debug: true
+    kafka:
+      input:
+        port: 9092
+  ingest:
+    debug: true
+    workers: 3
+    kafka:
+      input:
+        #change this to 'earliest' if want to replay all events kafka has after deleting consumer group
+        auto_offset_reset: latest
+        port: 9092
+        topics:
+          - name: stardust_snmp
+            parser: snmp
+          - name: stardust_transponder
+            parser: transponder
+      output:
+        bootstrap_server: kafka
+        port: 9092

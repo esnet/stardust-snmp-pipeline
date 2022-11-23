@@ -1,0 +1,21 @@
+PUT _component_template/stardust_large_lowrefresh_settings
+{
+  "version": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "routing": {
+          "allocation": {
+            "include": {
+              "_tier_preference": "data_hot"
+            },
+            "total_shards_per_node": "2"
+          }
+        },
+        "refresh_interval": "10s",
+        "number_of_shards": "5",
+        "number_of_replicas": "1"
+      }
+    }
+  }
+}

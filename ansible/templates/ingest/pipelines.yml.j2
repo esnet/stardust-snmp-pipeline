@@ -1,0 +1,14 @@
+# This file is where you define your pipelines. You can define multiple.
+# For more information on multiple pipelines, see the documentation:
+#   https://www.elastic.co/guide/en/logstash/current/multiple-pipelines.html
+
+- pipeline.id: snmp_ingest
+  pipeline.workers: "1"
+  path.config: "/usr/share/logstash/pipeline_ingest/*.conf"
+  pipeline.ecs_compatibility: disabled
+{% for n in range(pipelines.ingest.workers) %}
+- pipeline.id: snmp_ingest_processor{{ n }}
+  pipeline.workers: "1"
+  path.config: "/usr/share/logstash/pipeline_ingest_processor/instances/{{ n }}/*.conf"
+  pipeline.ecs_compatibility: disabled
+{% endfor %}
