@@ -3,13 +3,15 @@ elastic_output_password: local
 #Pipeline specific parameters
 pipelines:
   aggregate:
+    replicas: 1
     debug: true
     kafka:
       input:
         port: 9092
   ingest:
     debug: true
-    workers: 3
+    replicas: 1
+    workers: 1
     kafka:
       input:
         #change this to 'earliest' if want to replay all events kafka has after deleting consumer group

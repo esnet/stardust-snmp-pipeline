@@ -1,0 +1,11 @@
+- name: Stardust SNMP Pipeline Config for Docker Build"
+  hosts: all
+  vars_files:
+    - ./vars/default.yml
+  roles:
+    - role: config
+
+  tasks:
+    - name: Generating configuration with no vaults
+      debug:
+        msg: "Building config"
