@@ -35,6 +35,7 @@ pipeline_ingest:
 {% else %}
     #Input settings
     kafka_input_bootstrap_servers: "{{ pipelines.ingest.kafka.input.bootstrap_server }}:{{ pipelines.ingest.kafka.input.port}}"
+    kafka_input_client_id: {{ ansible_hostname }}
     #optimizations we use in production
     kafka_input_consumer_threads: 5
     kafka_input_max_poll_records: 1000

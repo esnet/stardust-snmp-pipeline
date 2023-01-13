@@ -32,6 +32,7 @@ pipeline_aggregate:
 {% else %}
     kafka_input_bootstrap_servers: "{{ pipelines.aggregate.kafka.input.bootstrap_server }}:{{ pipelines.aggregate.kafka.input.port }}"
     kafka_input_topic: stardust_snmp_aggregate
+    kafka_input_client_id: {{ ansible_hostname }}
     #optimizations we use in production
     kafka_input_consumer_threads: 1
     kafka_input_max_poll_records: 5000
