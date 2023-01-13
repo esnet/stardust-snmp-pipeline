@@ -10,10 +10,10 @@ pipelines:
       client_key_password: CHANGEME
       client_truststore_password: CHANGEME
       input:
-        bootstrap_server: 127.0.0.1
+        bootstrap_server: kafka
         client_key_password: CHANGEME
         client_truststore_password: CHANGEME
-        port: 9094
+        port: 9092
   ingest:
     replicas: 1
     mem: 16Gi
@@ -23,8 +23,8 @@ pipelines:
     workers: 1
     kafka:
       input:
-        bootstrap_server: 127.0.0.1
-        port: 9094
+        bootstrap_server: kafka
+        port: 9092
         client_key_password: CHANGEME
         client_truststore_password: CHANGEME
         #change this to 'earliest' if want to replay all events kafka has after deleting consumer group
@@ -35,10 +35,10 @@ pipelines:
           - name: stardust_transponder
             parser: transponder
       output:
-        bootstrap_server: 127.0.0.1
+        bootstrap_server: kafka
         client_key_password: CHANGEME
         client_truststore_password: CHANGEME
-        port: 9094
+        port: 9092
 
 #Global parameters
 elastic_output_user: elastic
@@ -52,5 +52,5 @@ elastic_hosts:
     port: 9200
 elastic_output_ilm: true
 elastic_output_use_auth: true
-kafka_input_ssl_enable: true
+kafka_input_ssl_enable: false
 monitoring_cluster_uuid: CHANGEME
