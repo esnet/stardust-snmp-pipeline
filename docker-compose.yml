@@ -50,6 +50,14 @@ services:
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29091
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
       - KAFKA_DELETE_TOPIC_ENABLE=true
+  telegraf:
+    image: telegraf:1.24.4
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - ./telegraf/telegraf.d/:/etc/telegraf/telegraf.d/
+    command: "--config-directory /etc/telegraf/telegraf.d/"
+
+
 networks:
   default:
     external:
